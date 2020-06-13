@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:location/location.dart';
 import 'package:restaurant/utility/my_style.dart';
 
 class AddInfoShop extends StatefulWidget {
@@ -8,6 +9,33 @@ class AddInfoShop extends StatefulWidget {
 }
 
 class _AddInfoShopState extends State<AddInfoShop> {
+  double lat, lng;
+
+  @override
+  void initState() {
+    super.initState();
+    findLatLng();
+  }
+
+  Future<void> findLatLng() async {
+    LocationData locationData = await findLocationData();
+    setState(() {
+      lat = locationData.latitude;
+      lng = locationData.longitude;
+      print(lng);
+    });
+
+  }
+
+  Future<LocationData> findLocationData() async {
+    Location location = Location();
+    try {
+      return location.getLocation();
+    } catch (error) {
+      return null;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -25,7 +53,7 @@ class _AddInfoShopState extends State<AddInfoShop> {
             Form("Shop tel.", Icon(Icons.phone)),
             groupImages(),
             MyStyle().sizedBox(),
-            showGoogleMap(),
+            lat == null ? MyStyle().progressIndicator() : showGoogleMap(),
             MyStyle().sizedBox(),
             saveButton()
           ],
@@ -54,9 +82,24 @@ class _AddInfoShopState extends State<AddInfoShop> {
     );
   }
 
+  Set<Marker> marker() {
+    return <Marker>[
+      Marker(
+          markerId: MarkerId('mymarker'),
+          position: LatLng(lat, lng),
+          infoWindow: InfoWindow(
+            title: 'ร้านของคุณ',
+            snippet: 'ละติจูด = $lat, ลองจิจูด = $lng',
+          ))
+    ].toSet();
+  }
+
   Container showGoogleMap() {
-    LatLng latLng = LatLng(12.663299, 100.952924);
-    CameraPosition cameraPosition = CameraPosition(target: latLng, zoom: 16);
+    LatLng latLng = LatLng(lat, lng);
+    CameraPosition cameraPosition = CameraPosition(
+      target: latLng,
+      zoom: 16,
+    );
 
     return Container(
       height: 300,
@@ -64,6 +107,7 @@ class _AddInfoShopState extends State<AddInfoShop> {
         initialCameraPosition: cameraPosition,
         mapType: MapType.normal,
         onMapCreated: (controller) {},
+        markers: marker(),
       ),
     );
   }
