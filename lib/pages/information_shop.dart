@@ -1,7 +1,11 @@
+import 'dart:convert';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:restaurant/utility/my_style.dart';
+import 'package:http/http.dart' as http;
+import 'dart:io';
 
 class AddInfoShop extends StatefulWidget {
   @override
@@ -10,11 +14,12 @@ class AddInfoShop extends StatefulWidget {
 
 class _AddInfoShopState extends State<AddInfoShop> {
   double lat, lng;
+  String words1, words2, answer;
 
   @override
   void initState() {
     super.initState();
-    findLatLng();
+    // findLatLng();
   }
 
   Future<void> findLatLng() async {
@@ -24,7 +29,16 @@ class _AddInfoShopState extends State<AddInfoShop> {
       lng = locationData.longitude;
       print(lng);
     });
+  }
 
+  Future<dynamic> getText() async {
+    var response = await http.get("http://127.0.0.1:5000/nlp/$words1/$words2/");
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception("Failed");
+    }
   }
 
   Future<LocationData> findLocationData() async {
@@ -40,22 +54,31 @@ class _AddInfoShopState extends State<AddInfoShop> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Add Information shop"),
+        title: Text("ตรวจสอบคำอ่าน"),
       ),
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
             MyStyle().sizedBox(),
-            Form("Shop name", Icon(Icons.account_box)),
             MyStyle().sizedBox(),
-            Form("Shop address", Icon(Icons.home)),
             MyStyle().sizedBox(),
-            Form("Shop tel.", Icon(Icons.phone)),
-            groupImages(),
             MyStyle().sizedBox(),
-            lat == null ? MyStyle().progressIndicator() : showGoogleMap(),
+            MyStyle().sizedBox(),
+            Form("คำที่ 1", Icon(Icons.text_fields)),
+            MyStyle().sizedBox(),
+            Form("คำที่ 2", Icon(Icons.text_fields)),
+            MyStyle().sizedBox(),
+//            Form("Shop name", Icon(Icons.account_box)),
+//            MyStyle().sizedBox(),
+//            Form("Shop address", Icon(Icons.home)),
+//            MyStyle().sizedBox(),
+//            Form("Shop tel.", Icon(Icons.phone)),
+//            groupImages(),
+//            MyStyle().sizedBox(),
+//            lat == null ? MyStyle().progressIndicator() : showGoogleMap(),
             MyStyle().sizedBox(),
             saveButton()
+
           ],
         ),
       ),
@@ -67,13 +90,17 @@ class _AddInfoShopState extends State<AddInfoShop> {
       width: MediaQuery.of(context).size.width,
       child: RaisedButton.icon(
         color: MyStyle().primaryColor,
-        onPressed: () {},
+        onPressed: () async {
+          var response = await getText();
+          answer = response["words"];
+          _handleClickMe();
+        },
         icon: Icon(
-          Icons.save,
+          Icons.file_upload,
           color: Colors.white,
         ),
         label: Text(
-          "Save information",
+          "ยืนยัน",
           style: TextStyle(
             color: Colors.white,
           ),
@@ -82,6 +109,26 @@ class _AddInfoShopState extends State<AddInfoShop> {
     );
   }
 
+  Future<void> _handleClickMe() async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return CupertinoAlertDialog(
+          title: Text('ผลการตรวจสอบ'),
+          content: Text(answer),
+          actions: <Widget>[
+            CupertinoDialogAction(
+              child: Text('ตกลง'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
   Set<Marker> marker() {
     return <Marker>[
       Marker(
@@ -150,6 +197,13 @@ class _AddInfoShopState extends State<AddInfoShop> {
                   prefixIcon: prefixIcon,
                   border: OutlineInputBorder(),
                 ),
+                onChanged: (String value) {
+                  if (labelText == "คำที่ 1") {
+                    words1 = value;
+                  } else {
+                    words2 = value;
+                  }
+                },
               )),
         ],
       );

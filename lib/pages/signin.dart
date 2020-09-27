@@ -73,6 +73,7 @@ class _SignInState extends State<SignIn> {
           ),
           labelText: "E-mail :",
         ),
+
         onSaved: (String value) {
           email = value.trim();
         },
